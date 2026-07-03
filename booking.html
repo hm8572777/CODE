@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حجز جلسة إرشادية | الكوتش حمزة محمد</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+    <style>
+        :root {
+            --primary-color: #27ae60;
+            --secondary-color: #2c3e50;
+            --background-color: #f4f7f6;
+            --text-color: #333;
+        }
+        body { 
+            font-family: sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background: var(--background-color); 
+            color: var(--text-color); 
+            direction: rtl; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .booking-container { 
+            max-width: 600px; 
+            width: 90%;
+            background: white; 
+            padding: 40px 30px; 
+            margin: 20px auto; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08); 
+            border-top: 6px solid var(--primary-color);
+            text-align: center;
+        }
+        
+        h2 { 
+            color: var(--secondary-color); 
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+        
+        .subtitle { 
+            line-height: 1.6; 
+            color: #666; 
+            font-size: 1rem;
+            margin-bottom: 30px;
+        }
+
+        form { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+            text-align: right;
+        }
+        
+        label {
+            font-weight: bold;
+            color: var(--secondary-color);
+            margin-bottom: -10px;
+            font-size: 0.95rem;
+        }
+
+        input, select, textarea { 
+            padding: 14px; 
+            border-radius: 6px; 
+            border: 1px solid #ccc; 
+            font-size: 1rem; 
+            box-sizing: border-box; 
+            background: #fafafa;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary-color);
+            background: white;
+        }
+        
+        textarea { 
+            height: 120px; 
+            resize: vertical; 
+        }
+        
+        .btn-submit { 
+            background: var(--primary-color); 
+            color: white; 
+            border: none; 
+            padding: 15px;
+            font-size: 1.1rem;
+            font-weight: bold; 
+            border-radius: 6px;
+            cursor: pointer; 
+            transition: background 0.3s, transform 0.1s; 
+            margin-top: 10px;
+        }
+        
+        .btn-submit:hover { 
+            background: #219653; 
+        }
+        
+        .btn-submit:active {
+            transform: scale(0.98);
+        }
+        
+        .footer-note {
+            margin-top: 25px;
+            font-size: 0.85rem;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="booking-container">
+        <h2>احجز جلستك الإرشادية والتوجيهية الآن 📅</h2>
+        <p class="subtitle">اتخذ الخطوة الأولى نحو بناء الأمان التربوي والاستقرار النفسي لأسرتك. سيتم التعامل مع بياناتك بسرية تامة وأمان نفسي كامل.</p>
+        
+        <form onsubmit="handleBooking(event)">
+            <label for="bookingName">الاسم الكامل:</label>
+            <input type="text" id="bookingName" placeholder="اكتب اسمك الثلاثي أو الثنائي هنا..." required>
+            
+            <label for="bookingWhatsapp">رقم الواتساب (مع كود الدولة):</label>
+            <input type="text" id="bookingWhatsapp" placeholder="مثال: 2010XXXXXXXX+" required>
+            
+            <label for="bookingType">نوع الاستشارة المطلوبة:</label>
+            <select id="bookingType">
+                <option>اختر الاستشارة...</option>
+                <option value="استشارة مراهقين">استشارة سلوكية ونفسية للمراهقين (13-18 سنة)</option>
+                <option value="إرشاد أولياء أمور">إرشاد وتوجيه تربوي لأولياء الأمور (جسر التواصل)</option>
+                <option value="تطوير أطفال">تطوير شخصية وبناء ثقة الأطفال (5-9 سنوات)</option>
+            </select>
+            
+            <label for="bookingDesc">وصف مختصر للتحدي التربوي أو السلوكي:</label>
+            <textarea id="bookingDesc" placeholder="اكتب هنا باختصار ما تواجهه من تحديات لمساعدتك بشكل أفضل..."></textarea>
+            
+            <button type="submit" class="btn-submit">إرسال طلب الحجز والتنسيق فوراً</button>
+        </form>
+        
+        <p class="footer-note">🔒 جميع الجلسات تخضع لأعلى معايير السرية التامة.</p>
+    </div>
+
+    <script>
+        // بيانات الربط الخاصة بمشروعك في سوبابيز
+        const MY_PROJECT_URL = "https://eiugdyuvxcxdngbmcufo.supabase.co"; 
+        const MY_PROJECT_KEY = "sb_publishable_AtAO7Q9x77UearE1ARf_Rw_ejrN9Alv"; 
+        const clientSupabase = supabase.createClient(MY_PROJECT_URL, MY_PROJECT_KEY);
+
+        // دالة معالجة وإرسال طلب الحجز إلى السيرفر
+        async function handleBooking(event) {
+            event.preventDefault(); // منع الصفحة من إعادة التحميل
+
+            const fullName = document.getElementById('bookingName').value.trim();
+            const whatsappNumber = document.getElementById('bookingWhatsapp').value.trim();
+            const consType = document.getElementById('bookingType').value;
+            const challengeDesc = document.getElementById('bookingDesc').value.trim();
+
+            // التحقق من صحة الاختيار
+            if (consType === "اختر الاستشارة...") {
+                alert("الرجاء اختيار نوع الاستشارة المناسب لحالتك.");
+                return;
+            }
+
+            try {
+                // إرسال البيانات مباشرة لجدول الحجوزات بالسيرفر
+                const { error } = await clientSupabase.from('bookings').insert([
+                    { 
+                        name: fullName, 
+                        whatsapp: whatsappNumber, 
+                        consultation_type: consType, 
+                        description: challengeDesc 
+                    }
+                ]);
+
+                if (error) throw error;
+
+                // إشعار نجاح وتصفير خانات الإدخال
+                alert("تم إرسال طلب حجزك بنجاح! 🎉 سيتواصل معك الكوتش حمزة قريباً لتنسيق الموعد.");
+                
+                document.getElementById('bookingName').value = '';
+                document.getElementById('bookingWhatsapp').value = '';
+                document.getElementById('bookingType').value = 'اختر الاستشارة...';
+                document.getElementById('bookingDesc').value = '';
+                
+            } catch (err) {
+                alert("للأسف حدث خطأ أثناء إرسال الطلب: " + err.message);
+                console.error("Booking submit error:", err);
+            }
+        }
+    </script>
+</body>
+</html>

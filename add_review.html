@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>أضف رأيك وملاحظاتك 💬</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #fafafa; margin: 0; padding: 20px; direction: rtl; text-align: center; }
+        .form-box { max-width: 500px; margin: 40px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        h2 { color: #2c3e50; margin-bottom: 20px; }
+        input, textarea, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
+        textarea { resize: vertical; height: 120px; font-family: sans-serif; }
+        button { background: #3498db; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2980b9; }
+    </style>
+</head>
+<body>
+
+<div class="form-box">
+    <h2>يسعدنا سماع رأيك وتقييمك 💬</h2>
+    <p style="color: #7f8c8d; font-size: 0.9rem;">رأيك يهمنا لمساعدتنا في تقديم أفضل خدمة دائماً.</p>
+    
+    <input type="text" id="clientName" placeholder="اسْمك الكريم">
+    <textarea id="clientText" placeholder="اكتب رأيك بكل صراحة هنا..."></textarea>
+    <button onclick="sendReview()">إرسال الرأي فوراً</button>
+</div>
+
+<script>
+    const MY_PROJECT_URL = "https://eiugdyuvxcxdngbmcufo.supabase.co"; 
+    const MY_PROJECT_KEY = "sb_publishable_AtAO7Q9x77UearE1ARf_Rw_ejrN9Alv"; 
+    const clientSupabase = supabase.createClient(MY_PROJECT_URL, MY_PROJECT_KEY);
+
+    async function sendReview() {
+        const nameInput = document.getElementById('clientName').value.trim();
+        const textInput = document.getElementById('clientText').value.trim();
+
+        if (!nameInput || !textInput) {
+            alert("من فضلك اكتب اسمك ونص الرأي أولاً!");
+            return;
+        }
+
+        try {
+            // جلب سجل واحد فارغ لفحص بنية وأسماء أعمدة الجدول الحقيقية لديك في سوبابيز
+            const { data: schemaData, error: schemaError } = await clientSupabase
+                .from('reviews')
+                .select('*')
+                .limit(1);
+
+            if (schemaError) throw schemaError;
+
+            // تحديد اسم عمود النص المتاح في جدولك تلقائياً
+            let nameColumn = 'name';
+            let textColumn = 'text'; // الافتراضي
+
+            if (schemaData) {
+                // البحث عن أي عمود يحتوي على كلمات تدل على نص الرأي أو التقييم في جدولك
+                const columns = Object.keys(schemaData[0] || {});
+                if (columns.length > 0) {
+                    if (!columns.includes('text')) {
+                        if (columns.includes('review')) textColumn = 'review';
+                        else if (columns.includes('comment')) textColumn = 'comment';
+                        else if (columns.includes('content')) textColumn = 'content';
+                        else if (columns.includes('message')) textColumn = 'message';
+                        else {
+                            // لو لم يجد، يبحث عن أي عمود نصي غير id و created_at
+                            const fallback = columns.find(c => c !== 'id' && c !== 'created_at' && c !== 'name');
+                            if (fallback) textColumn = fallback;
+                        }
+                    }
+                }
+            }
+
+            // تجهيز البيانات للإرسال بالأسماء الديناميكية المتوافقة مع السيرفر تماماً
+            const insertData = {};
+            insertData[nameColumn] = nameInput;
+            insertData[textColumn] = textInput;
+
+            const { error } = await clientSupabase.from('reviews').insert([insertData]);
+            if (error) throw error;
+
+            alert("شكراً لك! تم إرسال تقييمك بنجاح وسيعرض قريباً. 🎉");
+            document.getElementById('clientName').value = '';
+            document.getElementById('clientText').value = '';
+        } catch (err) {
+            alert("حدث خطأ أثناء الإرسال: " + err.message);
+        }
+    }
+</script>
+</body>
+</html>

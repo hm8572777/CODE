@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>معرض شهاداتي وآراء عملائي</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f9f9f9; margin: 0; padding: 20px; direction: rtl; text-align: center; }
+        h1, h2 { color: #2c3e50; }
+        
+        .gallery { display: flex; flex-wrap: wrap; gap: 25px; justify-content: center; margin-bottom: 60px; }
+        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); width: 280px; text-align: center; }
+        .card img { width: 100%; height: auto; border-radius: 5px; }
+        .card h3 { font-size: 1.1rem; color: #34495e; margin: 10px 0 0 0; }
+
+        .reviews-container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px; }
+        .review-card { background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); padding: 20px; width: 300px; text-align: right; border-top: 4px solid #3498db; }
+        .review-card strong { color: #2c3e50; font-size: 1.1rem; display: block; margin-bottom: 10px; }
+        .review-card p { color: #555; font-size: 0.95rem; line-height: 1.6; margin: 0; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <h1>🎓 معرض شهاداتي ومؤهلاتي البرمجية</h1>
+    <div class="gallery" id="certsGallery">جاري تحميل الشهادات...</div>
+
+    <hr style="border: 0; height: 1px; background: #eee; margin: 50px 0;">
+
+    <h2>💬 ماذا يقول عملاؤنا عنا</h2>
+    <div class="reviews-container" id="reviewsGallery">جاري تحميل الآراء...</div>
+
+<script>
+    const MY_PROJECT_URL = "https://eiugdyuvxcxdngbmcufo.supabase.co"; 
+    const MY_PROJECT_KEY = "sb_publishable_AtAO7Q9x77UearE1ARf_Rw_ejrN9Alv"; 
+    const clientSupabase = supabase.createClient(MY_PROJECT_URL, MY_PROJECT_KEY);
+
+    async function loadMainPageData() {
+        try {
+            // 1. جلب وعرض الشهادات
+            const { data: certs } = await clientSupabase.from('certificates').select('*');
+            const certsBox = document.getElementById('certsGallery');
+            certsBox.innerHTML = '';
+            if(certs && certs.length > 0) {
+                certs.forEach(cert => {
+                    certsBox.innerHTML += `
+                        <div class="card">
+                            <img src="${cert.image_url}">
+                            <h3>${cert.title}</h3>
+                        </div>
+                    `;
+                });
+            } else { certsBox.innerHTML = '<p>لا توجد شهادات معروضة حالياً.</p>'; }
+
+            // 2. جلب وعرض آراء العملاء
+            const { data: reviews } = await clientSupabase.from('reviews').select('*');
+            const reviewsBox = document.getElementById('reviewsGallery');
+            reviewsBox.innerHTML = '';
+            if(reviews && reviews.length > 0) {
+                reviews.forEach(rev => {
+                    reviewsBox.innerHTML += `
+                        <div class="review-card">
+                            <strong>${rev.name}</strong>
+                            <p>" ${rev.text} "</p>
+                        </div>
+                    `;
+                });
+            } else { reviewsBox.innerHTML = '<p>لا توجد آراء معروضة حالياً.</p>'; }
+
+        } catch (e) { console.error(e); }
+    }
+
+    window.onload = loadMainPageData;
+</script>
+</body>
+</html>

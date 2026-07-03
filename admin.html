@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة التحكم الشاملة - إدارة الموقع</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 20px; direction: rtl; text-align: center; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h2, h3 { color: #2c3e50; }
+        .section { margin-bottom: 40px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa; }
+        input, button, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
+        button { background: #27ae60; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background: #219653; }
+        
+        /* تنسيق كروت الحجوزات والبيانات */
+        .list-item { display: flex; flex-direction: column; background: white; padding: 15px; margin: 15px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: right; border-right: 5px solid #27ae60; }
+        .list-item.review-item { border-right-color: #34495e; flex-direction: row; justify-content: space-between; align-items: center; }
+        .list-item.cert-item { border-right-color: #2980b9; flex-direction: row; justify-content: space-between; align-items: center; }
+        .list-item img { height: 50px; width: auto; border-radius: 4px; margin-left: 15px; object-fit: contain; }
+        
+        .booking-details { display: flex; flex-direction: column; gap: 5px; }
+        .booking-meta { color: #7f8c8d; font-size: 0.85rem; margin-bottom: 5px; }
+        .booking-desc { background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 3px solid #7f8c8d; margin-top: 5px; font-style: italic; color: #34495e; }
+        
+        .actions-box { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; }
+        .btn-action { width: auto; padding: 8px 18px; margin: 0; font-size: 0.9rem; border: none; border-radius: 4px; color: white; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; text-align: center; }
+        .btn-delete { background: #e74c3c; }
+        .btn-delete:hover { background: #c0392b; }
+        .btn-whatsapp { background: #25D366; color: white; }
+        .btn-whatsapp:hover { background: #1ebd58; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>لوحة تحكم إدارة الموقع الشاملة 🛠️</h2>
+    <p>مرحباً بك يا كوتش حمزة. من هنا يمكنك متابعة طلبات الحجز والتحكم في محتوى الموقع بالكامل.</p>
+
+    <div class="section" style="background: #eef9f1; border-color: #c2eed0;">
+        <h3 style="color: #27ae60;">📅 طلبات الحجز والجلسات الإرشادية الجديدة</h3>
+        <p style="font-size: 0.9rem; color: #555;">اضغط على زر الواتساب للتواصل الفوري مع العميل وتنسيق موعد الجلسة.</p>
+        <div id="bookingsList">جاري تحميل طلبات الحجز...</div>
+    </div>
+
+    <div class="section">
+        <h3>اضافة شهادة جديدة 🎓</h3>
+        <input type="text" id="certTitle" placeholder="عنوان الشهادة">
+        <input type="file" id="certFile" accept="image/*">
+        <button onclick="uploadCertificate()">رفع وحفظ الشهادة</button>
+
+        <h3>الشهادات الحالية بالموقع (اضغط لحذفها):</h3>
+        <div id="certsList">جاري تحميل الشهادات...</div>
+    </div>
+
+    <div class="section">
+        <h3>آراء العملاء الحالية بالموقع (امسح الآراء الكاذبة من هنا):</h3>
+        <div id="reviewsList">جاري تحميل الآراء...</div>
+    </div>
+</div>
+
+<script>
+    const MY_PROJECT_URL = "https://eiugdyuvxcxdngbmcufo.supabase.co"; 
+    const MY_PROJECT_KEY = "sb_publishable_AtAO7Q9x77UearE1ARf_Rw_ejrN9Alv"; 
+    const clientSupabase = supabase.createClient(MY_PROJECT_URL, MY_PROJECT_KEY);
+
+    // دالة جلب وعرض جميع البيانات للوحة التحكم
+    async function loadAllAdminData() {
+        try {
+            // 1. جلب وعرض طلبات الحجز ديناميكياً
+            const { data: bookings, error: bookingsError } = await clientSupabase
+                .from('bookings')
+                .select('*')
+                .order('id', { ascending: false }); // عرض الأحدث أولاً
+            
+            if (bookingsError) throw bookingsError;
+
+            const bookingsBox = document.getElementById('bookingsList');
+            bookingsBox.innerHTML = '';
+            if (bookings && bookings.length > 0) {
+                bookings.forEach(book => {
+                    // تنظيف رقم الهاتف لربطه برابط الواتساب المباشر بشكل صحيح
+                    const cleanPhone = book.whatsapp.replace(/\D/g, '');
+                    const dateFormatted = new Date(book.created_at).toLocaleDateString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+                    bookingsBox.innerHTML += `
+                        <div class="list-item">
+                            <div class="booking-meta">تاريخ الطلب: ${dateFormatted}</div>
+                            <div class="booking-details">
+                                <strong>👤 الاسم: <span style="color:#2c3e50;">${book.name}</span></strong>
+                                <strong>📞 رقم الواتساب: <span style="color:#2c3e50; direction:ltr; display:inline-block;">${book.whatsapp}</span></strong>
+                                <strong>🎯 نوع الاستشارة: <span style="color:#27ae60;">${book.consultation_type}</span></strong>
+                                ${book.description ? `<div class="booking-desc"><strong>📝 وصف التحدي:</strong> "${book.description}"</div>` : ''}
+                            </div>
+                            <div class="actions-box">
+                                <a href="https://wa.me/${cleanPhone}" target="_blank" class="btn-action btn-whatsapp">📱 تواصل عبر الواتساب</a>
+                                <button class="btn-action btn-delete" onclick="deleteBooking(${book.id})">حذف الطلب 🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else { bookingsBox.innerHTML = '<p style="color:#777;">لا توجد طلبات حجز حالياً.</p>'; }
+
+            // 2. جلب وعرض الشهادات
+            const { data: certs, error: certsError } = await clientSupabase.from('certificates').select('*');
+            if (certsError) throw certsError;
+
+            const certsBox = document.getElementById('certsList');
+            certsBox.innerHTML = '';
+            if (certs && certs.length > 0) {
+                certs.forEach(cert => {
+                    certsBox.innerHTML += `
+                        <div class="list-item cert-item">
+                            <div style="display: flex; align-items: center;">
+                                <img src="${cert.image_url}" alt="Certificate">
+                                <span>${cert.title}</span>
+                            </div>
+                            <button class="btn-action btn-delete" onclick="deleteCertificate(${cert.id})">حذف 🗑️</button>
+                        </div>
+                    `;
+                });
+            } else { certsBox.innerHTML = '<p style="color:#999;">لا توجد شهادات حالياً.</p>'; }
+
+            // 3. جلب وعرض الآراء
+            const { data: reviews, error: reviewsError } = await clientSupabase.from('reviews').select('*');
+            if (reviewsError) throw reviewsError;
+
+            const reviewsBox = document.getElementById('reviewsList');
+            reviewsBox.innerHTML = '';
+            if (reviews && reviews.length > 0) {
+                reviews.forEach(rev => {
+                    reviewsBox.innerHTML += `
+                        <div class="list-item review-item">
+                            <div>
+                                <strong>${rev.name} ${rev.job ? `(${rev.job})` : ''}</strong>
+                                <span style="display:block; color:#555; font-size:0.9rem; margin-top:4px;">"${rev.text}"</span>
+                            </div>
+                            <button class="btn-action btn-delete" onclick="deleteReview(${rev.id})">حذف 🗑️</button>
+                        </div>
+                    `;
+                });
+            } else { reviewsBox.innerHTML = '<p style="color:#999;">لا توجد آراء معروضة حالياً.</p>'; }
+
+        } catch (e) { 
+            console.error("خطأ أثناء تحميل لوحة التحكم:", e.message); 
+        }
+    }
+
+    // دالة حذف طلب الحجز من السيرفر
+    async function deleteBooking(id) {
+        if (confirm("هل أنت متأكد تماماً أنك تريد مسح طلب الحجز هذا؟")) {
+            try {
+                const { error } = await clientSupabase.from('bookings').delete().eq('id', id);
+                if (error) throw error;
+                alert("تم حذف طلب الحجز بنجاح! 🗑️");
+                window.location.reload();
+            } catch (err) {
+                alert("تعذر حذف طلب الحجز: " + err.message);
+            }
+        }
+    }
+
+    // دالة رفع وحفظ شهادة جديدة
+    async function uploadCertificate() {
+        const title = document.getElementById('certTitle').value.trim();
+        const fileInput = document.getElementById('certFile');
+        const file = fileInput.files[0];
+        if (!title || !file) return alert("امْلأ البيانات أولاً واختَر صورة الشهادة!");
+
+        try {
+            const fileName = Date.now() + "_" + file.name;
+            const { error: uploadError } = await clientSupabase.storage.from('certificates-image').upload(fileName, file);
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = clientSupabase.storage.from('certificates-image').getPublicUrl(fileName);
+            const { error: insertError } = await clientSupabase.from('certificates').insert([{ title: title, image_url: urlData.publicUrl }]);
+            if (insertError) throw insertError;
+
+            alert("تم حفظ ورفع الشهادة بنجاح! 🎉");
+            window.location.reload();
+        } catch (err) { 
+            alert("حدث خطأ أثناء الرفع: " + err.message); 
+        }
+    }
+
+    // دالة حذف الشهادة
+    async function deleteCertificate(id) {
+        if (confirm("هل أنت متأكد من حذف هذه الشهادة نهائياً؟")) {
+            try {
+                const { error } = await clientSupabase.from('certificates').delete().eq('id', id);
+                if (error) throw error;
+                alert("تم حذف الشهادة بنجاح! 🗑️");
+                window.location.reload(); 
+            } catch (err) {
+                alert("فشل الحذف: " + err.message);
+            }
+        }
+    }
+
+    // دالة حذف رأي العميل
+    async function deleteReview(id) {
+        if (confirm("هل أنت متأكد من حذف هذا الرأي؟")) {
+            try {
+                const { error } = await clientSupabase.from('reviews').delete().eq('id', id);
+                if (error) throw error;
+                alert("تم حذف الرأي بنجاح! 🗑️");
+                window.location.reload();
+            } catch (err) {
+                alert("تعذر الحذف: " + err.message);
+            }
+        }
+    }
+
+    window.onload = loadAllAdminData;
+</script>
+</body>
+</html>
